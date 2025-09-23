@@ -1,27 +1,75 @@
 package translation;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 
-// TODO Task D: Update the GUI for the program to align with UI shown in the README example.
-//            Currently, the program only uses the CanadaTranslator and the user has
-//            to manually enter the language code they want to use for the translation.
-//            See the examples package for some code snippets that may be useful when updating
-//            the GUI.
 public class GUI {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            ArrayList<String> countries = new ArrayList<>();
+            ArrayList<String> languages = new ArrayList<>();
+
+            try {
+                List<String> lines = Files.readAllLines(
+                        Paths.get(GUI.class.getResource("/country-codes.txt").toURI()));
+                lines.remove(0);;
+                for (String line : lines) {
+                    String[] parts = line.split("\t");
+                    countries.add(parts[0]);
+                }
+            } catch (IOException | URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                List<String> lines = Files.readAllLines(
+                        Paths.get(GUI.class.getResource("/language-codes.txt").toURI()));
+                lines.remove(0);
+                for (String line : lines) {
+                    String[] parts = line.split("\t");
+                    languages.add(parts[0]);
+                }
+            } catch (IOException | URISyntaxException e) {
+                JOptionPane.showMessageDialog(null,
+                        "Failed to read language or country code files:\n" + e.getMessage(),
+                        "File Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            JList<String> countriesList = new JList<>(countries.toArray(new String[0]));
+            countriesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            countriesList.setVisibleRowCount(5);
+
+            JList<String> languageList = new JList<>(languages.toArray(new String[0]));
+            languageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            languageList.setVisibleRowCount(5);
+
+            JScrollPane countriesScrollPane = new JScrollPane(countriesList);
+            countriesScrollPane.setPreferredSize(new Dimension(150,100));
+
+            JScrollPane languageScrollPane = new JScrollPane(languageList);
+            languageScrollPane.setPreferredSize(new Dimension(150,100));
+
             JPanel countryPanel = new JPanel();
-            JTextField countryField = new JTextField(10);
             countryPanel.add(new JLabel("Country:"));
-            countryPanel.add(countryField);
+            countryPanel.add(countriesScrollPane);
+
 
             JPanel languagePanel = new JPanel();
-            JTextField languageField = new JTextField(10);
             languagePanel.add(new JLabel("Language:"));
-            languagePanel.add(languageField);
+            languagePanel.add(languageScrollPane);
 
             JPanel buttonPanel = new JPanel();
             JButton submit = new JButton("Submit");
@@ -37,15 +85,23 @@ public class GUI {
             submit.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    String language = languageField.getText();
-                    String country = countryField.getText();
+                    String country_selected = countriesList.getSelectedValue();
+                    String language_selected = languageList.getSelectedValue();
+                    if (country_selected == null) {
+                        JOptionPane.showMessageDialog(null, "Please select a country.");
+                        return;
+                    }
+                    if (language_selected == null) {
+                        JOptionPane.showMessageDialog(null, "Please select a language.");
+                        return;
+                    }
 
-
-                    // for now, just using our simple translator, but
-                    // we'll need to use the real JSON version later.
                     Translator translator = new JSONTranslator();
+                    LanguageCodeConverter languageCodeConverter = new LanguageCodeConverter();
+                    CountryCodeConverter countryCodeConverter = new CountryCodeConverter();
 
-                    String result = translator.translate(country, language);
+                    String result = translator.translate(countryCodeConverter.fromCountry(country_selected),
+                            languageCodeConverter.fromLanguage(language_selected));
                     if (result == null) {
                         result = "no translation found!";
                     }
