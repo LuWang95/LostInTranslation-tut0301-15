@@ -24,7 +24,7 @@ public class GUI {
             try {
                 List<String> lines = Files.readAllLines(
                         Paths.get(GUI.class.getResource("/country-codes.txt").toURI()));
-                lines.remove(0);;
+                lines.remove(0);
                 for (String line : lines) {
                     String[] parts = line.split("\t");
                     countries.add(parts[0]);
